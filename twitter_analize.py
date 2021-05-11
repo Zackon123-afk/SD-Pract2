@@ -11,13 +11,15 @@ cursor = tweepy.Cursor(api.search, q="covid-19 lang=ca OR lang:es",tweet_mode="e
 tweets=[]
 likes=[]
 time=[]
+comments=[]
 
 for i in cursor:
     tweets.append(i.full_text)
     likes.append(i.favorite_count)
     time.append(i.created_at)
+    comments.append(i.comment_count)
 
-df = pd.DataFrame({'tweets':tweets,'likes':likes,'time':time})
+df = pd.DataFrame({'tweets':tweets,'likes':likes,'time':time,'comments':comments})
 df = df[~df.tweets.str.contains("RT")]
 df = df.reset_index(drop=True)
 df
