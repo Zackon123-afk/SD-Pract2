@@ -1,36 +1,65 @@
 import tweepy
 import pandas as pd
 from lithops import Storage
-
-auth = tweepy.OAuthHandler("G7oVPMZP776iDbfLW6KRIlvg6", "MnH3qXuRHfoJXSzXSPdtneAvLCJ2MslvKskHHq0qvrAdNiUyox")
-auth.set_access_token("1059931089999945729-AAimzlFRpPy6RSQqESCM1XJJZAmtbn", "4Sq5Ga0aLC2PIgdzWWIp5ISY4iNFg6cRshJJpQUv12j9u")
-
-api = tweepy.API(auth)
-
-numberOfTweets=5
-
-cursor = tweepy.Cursor(api.search, q="covid-19 lang=ca OR lang:es",tweet_mode="extended").items(numberOfTweets)
-tweets=[]
-likes=[]
-time=[]
-comments=[]
-
-for i in cursor:
-    tweets.append(i.full_text)
-    likes.append(i.favorite_count)
-    time.append(i.created_at)
+import csv
+from autenticacion_tweppy import get_auth
+import os
 
 
-df = pd.DataFrame({'tweets':tweets,'likes':likes,'time':time})
-df = df[~df.tweets.str.contains("RT")]
-df = df.reset_index(drop=True)
-df
 
-nom_bucket="2sdpractica"
+'''
+Codigo para la creación de el fichero
+'''
+def create_headercsv(filename):
+    csvFile = open(filename, 'w', newline='')
+    csvWriter = csv.writer(csvFile)
+    
+    cabecera=['Fecha_creación','Texto','Fuente','Localización','URL','Idioma']
 
-storage = Storage()
-storage.put_object(nom_bucket,"twitter_analize.json",df.to_json(orient="index"))
+    csvWriter.writerow(cabecera)
+    csvFile.close()
+    print("File and header created correctly") 
 
-#public_tweets = api.home_timeline()
-#for tweet in public_tweets:
-#    print(tweet.text)
+
+'''
+Codigo para recoger la informacion del tweet y guardarlo en un csv
+'''
+def process_status(status,filename):
+    csvFile = open(filename, 'a', newline='', encoding="utf-8")
+    csvWriter = csv.writer(csvFile)
+    if status is not False:
+        texto = status.full_text
+        print(texto)
+        url = "https://twitter.com/twitter/statuses/"+str(status.id)
+        linea = [status.created_at, texto, status.source, status.user.location,url ,status.lang]
+        csvWriter.writerow(linea)
+    print("Almacenamos Tweet")
+    csvFile.close()
+    print("fin")
+
+    return linea;
+
+
+def tweepy_scan_csv(word ,filename, nom_bucket):
+    
+    auth = get_auth()
+    api = tweepy.API(auth)
+
+    create_headercsv(filename)
+
+    cabecera=['Fecha_creación','Texto','Fuente','Localización','URL','Idioma']
+    datos = str(cabecera)+"\n"
+    print(datos)
+
+    qstring=word+" lang=ca OR lang:es"
+    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(1): #numberOftwets
+        datos += str(process_status(status,filename))+ "\n"
+    print("-------------------------------------------------------------------------------------------------------------------------------")
+     
+    print(datos)
+    storage = Storage()
+    storage.put_object(nom_bucket,"twitter_analize.csv", datos)
+
+if __name__ == '__main__':
+    tweepy_scan_csv("covid","prova.csv","2sdpractica")    
+
