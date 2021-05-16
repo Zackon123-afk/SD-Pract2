@@ -10,7 +10,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 Codigo para la creación de el fichero
 '''
 def create_headercsv(filename):
-    csvFile = open(filename, 'w', newline='')
+    csvFile = open(filename, 'w', newline='', encoding="utf-8")
     csvWriter = csv.writer(csvFile)
     
     cabecera=['Fecha_creación','Texto','Fuente','Localización','URL','Idioma','Sentimiento']
@@ -48,7 +48,7 @@ def process_statusCsv(status,filename):
 def tweepy_scan_csv(word ,filename, nom_bucket):
     
     auth = get_auth()
-    api = tweepy.API(auth)
+    api = tweepy.API(auth, wait_on_rate_limit=True)
 
     create_headercsv(filename)
 
@@ -59,11 +59,11 @@ def tweepy_scan_csv(word ,filename, nom_bucket):
     qstring=word+" lang=ca OR lang:es"
     for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(1): #numberOftwets
         datos += process_statusCsv(status,filename)+ "\n"
-    print("-------------------------------------------------------------------------------------------------------------------------------")
+        print("-------------------------------------------------------------------------------------------------------------------------------")
+        
      
-    print(datos)
     storage = Storage()
-    storage.put_object(nom_bucket,"twitter_analize.csv", datos)
+    storage.put_object(nom_bucket,"stats"+word+".csv", datos)
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
