@@ -3,70 +3,60 @@ from lithops import Storage
 import csv
 from autenticacion_tweppy import get_auth
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import json
 
 
 
-'''
-Codigo para la creación de el fichero
-'''
-def create_headercsv(filename):
-    csvFile = open(filename, 'w', newline='', encoding="utf-8")
-    csvWriter = csv.writer(csvFile)
-    
-    cabecera=['Fecha_creación','Texto','Fuente','Localización','URL','Idioma','Sentimiento']
-
-    csvWriter.writerow(cabecera)
-    csvFile.close()
-    print("File and header created correctly") 
-
-#----------------------------------------------------------------------------------------------------------------------------------------
-'''
-Codigo para recoger la informacion del tweet y guardarlo en un csv
-'''
-def process_statusCsv(status,filename):
-    csvFile = open(filename, 'a', newline='', encoding="utf-8")
-    csvWriter = csv.writer(csvFile)
-    
-    if status is not False:
-        texto = status.full_text
-        url = "https://twitter.com/twitter/statuses/"+str(status.id)
-        
-        analyzer = SentimentIntensityAnalyzer()
-        vs = analyzer.polarity_scores(texto)
-        data = status.created_at.strftime("%m/%d/%Y %H:%M:%S")
-        linea = data+","+texto+"," +status.source+","+ status.user.location+","+url +","+status.lang+","+str(vs['compound'])
-
-        lineacsv = [status.created_at, texto, status.source, status.user.location,url ,status.lang, vs['compound']]
-        csvWriter.writerow(lineacsv)
-
-    csvFile.close()
-    
-   
-    return linea;
-
-#----------------------------------------------------------------------------------------------------------------------------------------
-def tweepy_scan_csv(word ,filename, nom_bucket):
+def tweepy_scan(word, nom_bucket):
     
     auth = get_auth()
     api = tweepy.API(auth, wait_on_rate_limit=True)
 
-    create_headercsv(filename)
-
-    cabecera="Fecha_creación,Texto,Fuente,Localización,URL,Idioma,Sentimiento"
-    datos = str(cabecera)+"\n"
-    print(datos)
-
+    #create_headercsv(filename)
+   
+    analyzer = SentimentIntensityAnalyzer()
     qstring=word+" lang=ca OR lang:es"
-    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(1): #numberOftwets
-        datos += process_statusCsv(status,filename)+ "\n"
+   
+    
+    i = 0;
+    textos = []
+    urls = []
+    sentiments = []
+    dates = []
+    local = []
+    source = []
+    lenguaje = []
+    
+    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(2): #numberOftwets
+
         print("-------------------------------------------------------------------------------------------------------------------------------")
-        
-     
-    storage = Storage()
-    storage.put_object(nom_bucket,"stats"+word+".csv", datos)
+        textos.append(status.full_text)
+        urls.append("https://twitter.com/twitter/statuses/"+str(status.id)+",")
+        sentiments.append(str(analyzer.polarity_scores(textos[i])['compound']))
+        dates.append(status.created_at.strftime("%m/%d/%Y %H:%M:%S"))
+        local.append(str(status.user.location))
+        source.append(str(status.source))
+        lenguaje.append(str(status.lang))
+        i += 1;
+
+       
+    
+    datos = {
+        "Mensaje": textos,
+        "url": [urls],
+        "sentiment": [sentiments],
+        "date": [dates],
+        "local": [local],
+        "source": [source],
+        "lenguaje": [lenguaje]
+    }
+
+    storage = Storage()  
+    storage.put_object(nom_bucket,"stats"+word+".json",json.dumps(datos))
+
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
-    tweepy_scan_csv("covid","prova.csv","2sdpractica")    
+    tweepy_scan("covid","2sdpractica")    
 
