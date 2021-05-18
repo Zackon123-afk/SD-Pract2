@@ -1,6 +1,6 @@
 import tweepy
+from datetime import datetime
 from lithops import Storage
-import csv
 from autenticacion_tweppy import get_auth
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import json
@@ -27,9 +27,10 @@ def tweepy_scan(word, nom_bucket):
     source = []
     lenguaje = []
     
-    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(2): #numberOftwets
+    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(500): #numberOftwets
 
-        print("-------------------------------------------------------------------------------------------------------------------------------")
+        print("-------------------------------------------------------------------------------------------------------------------------------" + str(i))
+
         textos.append(status.full_text)
         urls.append("https://twitter.com/twitter/statuses/"+str(status.id)+",")
         sentiments.append(str(analyzer.polarity_scores(textos[i])['compound']))
@@ -50,9 +51,12 @@ def tweepy_scan(word, nom_bucket):
         "source": [source],
         "lenguaje": [lenguaje]
     }
+    now = datetime.now()
+    data = now.strftime("%m/%d/%Y %H:%M:%S")
 
+    
     storage = Storage()  
-    storage.put_object(nom_bucket,"stats"+word+".json",json.dumps(datos))
+    storage.put_object(nom_bucket,data+"-"+word+".json",json.dumps(datos))
 
 #----------------------------------------------------------------------------------------------------------------------------------------
 
