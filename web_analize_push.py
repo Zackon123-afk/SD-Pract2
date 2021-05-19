@@ -1,32 +1,84 @@
 from scrapy.crawler import CrawlerProcess
-from lithops import Storage, storage
 import scrapy
+from urllib.parse import urlencode
+import json
 
-nom_bucket="2sdpractica"
 
-class QuotesSpider(scrapy.Spider):
-    name = "quotes"
+class Reddit (scrapy.Spider):
+
+    name = 'reddit_scraper'
+
+    base_url = 'https://gateway.reddit.com/desktopapi/v1/subreddits/COVID19?'
+    
+    params = {
+        "rtj":"only",
+        "redditWebClient":"web2x",
+        "app":"web2x-client-production",
+        "allow_over18":"",
+        "include":"prefsSubreddit",
+        "after":"t3_nejiy5",
+        "dist":"8",
+        "layout":"card",
+        "sort":"hot",
+        "geo_filter":"ES"
+    }
 
     def start_requests(self):
-        urls = [
-            'https://www.reddit.com/r/COVID19/'
-            #'https://www.elperiodico.com/es/temas/coronavirus-noticias-43419'
-        ]
-        for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+        #generate API URL
+        url = self.base_url + urlencode(self.params)
+        
+        #make initial HTTP request
+        yield scrapy.Request(
+            url=url,
+            callback=self.parse_page
+        )
 
-    def parse(self, response):
-        page = response.url.split("/")[-2]
-        filename = f'quotes-{page}.html'
+    def parse_page(self,response):
+        json_data= json.loads(response.text)
 
-        storage = Storage()
-        storage.put_object(nom_bucket,filename,response.body)
+        #loop over posts
+        for post in json_data['posts']:
+            posts_url = json_data['posts'][post]['permalink']
 
-        #with open(filename, 'wb') as f:
-        #    f.write(response.body)
-        #self.log(f'Saved file {filename}')
+            # make HTTP request to the given post
+            yield response.follow(
+                url=posts_url,
+                callback=self.parse_post
+            )
+            break
+        #extract post urls
+        # print(json_data['posts'])
 
 
-process = CrawlerProcess()
-process.crawl(QuotesSpider) #testSpider sera el nom de la teva aranya
-process.start()
+        #update string query parameters
+        self.params['after']= json_data['token']
+        self.params['dist']= json_data['dist']
+
+        #generate API URL
+        url = self.base_url + urlencode(self.params)
+
+        #make recursive HTTP request to the next page
+        yield scrapy.Request(
+            url=url,
+            callback=self.parse_page
+        )
+
+
+    def parse_post(self,response):
+        #extract data
+        posts = {
+            'title': response.css('h1[class="_eYtD2XCVieq6emjKBH3m"]::text').get(),
+            'likes': response.css('div[class="_1rZYMD_4xY3gRcSS3p8ODO _3a2ZHWaih05DgAOtvu6cIo"]::text').get(),
+        }
+
+        # write JSONL output
+        with open('posts.jsonl', 'a') as f:
+            f.write(json.dumps(posts, indent=2) + '\n')
+
+        print(json.dumps(posts, indent=2))
+
+
+if __name__ == '__main__':
+    process = CrawlerProcess()
+    process.crawl(Reddit)
+    process.start()

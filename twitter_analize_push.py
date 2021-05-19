@@ -43,7 +43,7 @@ def tweepy_scan(word, nom_bucket):
        
     
     datos = {
-        "Mensaje": textos,
+        "Mensaje": [textos],
         "url": [urls],
         "sentiment": [sentiments],
         "date": [dates],
@@ -52,7 +52,7 @@ def tweepy_scan(word, nom_bucket):
         "lenguaje": [lenguaje]
     }
     now = datetime.now()
-    data = now.strftime("%m/%d/%Y %H:%M:%S")
+    data = now.strftime("%m/%d/%Y")
 
     
     storage = Storage()  
