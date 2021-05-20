@@ -3,6 +3,8 @@ import scrapy
 from urllib.parse import urlencode
 import json
 
+max=50
+count=0
 
 class Reddit (scrapy.Spider):
 
@@ -34,34 +36,41 @@ class Reddit (scrapy.Spider):
         )
 
     def parse_page(self,response):
-        json_data= json.loads(response.text)
+        global count
+        global max
+        if (count<max) :
+            json_data= json.loads(response.text)
 
-        #loop over posts
-        for post in json_data['posts']:
-            posts_url = json_data['posts'][post]['permalink']
+            #loop over posts
+            for post in json_data['posts']:
+                posts_url = json_data['posts'][post]['permalink']
 
-            # make HTTP request to the given post
-            yield response.follow(
-                url=posts_url,
-                callback=self.parse_post
+                # make HTTP request to the given post
+                yield response.follow(
+                    url=posts_url,
+                    callback=self.parse_post
+                )
+                break
+            #extract post urls
+            # print(json_data['posts'])
+
+
+            #update string query parameters
+            self.params['after']= json_data['token']
+            self.params['dist']= json_data['dist']
+
+            #generate API URL
+            url = self.base_url + urlencode(self.params)
+
+            #update count
+            count = count + 1
+
+            #make recursive HTTP request to the next page
+            yield scrapy.Request(
+                url=url,
+                callback=self.parse_page
             )
-            break
-        #extract post urls
-        # print(json_data['posts'])
 
-
-        #update string query parameters
-        self.params['after']= json_data['token']
-        self.params['dist']= json_data['dist']
-
-        #generate API URL
-        url = self.base_url + urlencode(self.params)
-
-        #make recursive HTTP request to the next page
-        yield scrapy.Request(
-            url=url,
-            callback=self.parse_page
-        )
 
 
     def parse_post(self,response):
@@ -74,6 +83,7 @@ class Reddit (scrapy.Spider):
         # write JSONL output
         with open('posts.jsonl', 'a') as f:
             f.write(json.dumps(posts, indent=2) + '\n')
+        
 
         print(json.dumps(posts, indent=2))
 
