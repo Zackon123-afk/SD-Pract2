@@ -1,10 +1,11 @@
 from scrapy.crawler import CrawlerProcess
 import scrapy
 from urllib.parse import urlencode
+from lithops.storage.cloud_proxy import open
 import json
+from datetime import datetime
 
-max=50
-count=0
+
 
 class Reddit (scrapy.Spider):
 
@@ -24,6 +25,9 @@ class Reddit (scrapy.Spider):
         "sort":"hot",
         "geo_filter":"ES"
     }
+    max=200
+    count=0
+    countpost=0
 
     def start_requests(self):
         #generate API URL
@@ -38,7 +42,7 @@ class Reddit (scrapy.Spider):
     def parse_page(self,response):
         global count
         global max
-        if (count<max) :
+        if (self.count<self.max) :
             json_data= json.loads(response.text)
 
             #loop over posts
@@ -63,7 +67,7 @@ class Reddit (scrapy.Spider):
             url = self.base_url + urlencode(self.params)
 
             #update count
-            count = count + 1
+            self.count = self.count + 1
 
             #make recursive HTTP request to the next page
             yield scrapy.Request(
@@ -79,10 +83,17 @@ class Reddit (scrapy.Spider):
             'title': response.css('h1[class="_eYtD2XCVieq6emjKBH3m"]::text').get(),
             'likes': response.css('div[class="_1rZYMD_4xY3gRcSS3p8ODO _3a2ZHWaih05DgAOtvu6cIo"]::text').get(),
         }
+        nom=self.countpost
+        self.countpost+=1
+        with open("webCrawling/"+str(nom)+"-web.json",'w') as jsonf :
+            json.dump(json.dumps(posts), jsonf, indent=2)
+        
+        
+
 
         # write JSONL output
-        with open('posts.jsonl', 'a') as f:
-            f.write(json.dumps(posts, indent=2) + '\n')
+        # with open('posts.jsonl', 'a') as f:
+        #     f.write(json.dumps(posts, indent=2) + '\n')
         
 
         print(json.dumps(posts, indent=2))
