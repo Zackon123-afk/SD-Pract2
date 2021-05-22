@@ -25,7 +25,7 @@ data_analize = json.loads(json_read)
 # pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in data_analize.items() ]))
 
 
-print(data_analize['Mensaje'][1])
+print(data_analize['url'][1])
 
 # def countingWords(i):
 #     for word in words_to_read:
