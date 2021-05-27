@@ -1,7 +1,7 @@
 from scrapy.crawler import CrawlerProcess
 import scrapy
 from urllib.parse import urlencode
-from lithops.storage.cloud_proxy import open
+from lithops import Storage
 import json
 from datetime import datetime
 
@@ -25,9 +25,17 @@ class Reddit (scrapy.Spider):
         "sort":"hot",
         "geo_filter":"ES"
     }
-    max=200
+    max=40 #maximum value due to limitations of scrappy
     count=0
-    countpost=0
+    titol = []
+    likes = []
+    post = {
+        'titol': titol,
+        'likes': likes
+    }
+
+    nom_bucket='2sdpractica'
+
 
     def start_requests(self):
         #generate API URL
@@ -40,8 +48,6 @@ class Reddit (scrapy.Spider):
         )
 
     def parse_page(self,response):
-        global count
-        global max
         if (self.count<self.max) :
             json_data= json.loads(response.text)
 
@@ -74,6 +80,11 @@ class Reddit (scrapy.Spider):
                 url=url,
                 callback=self.parse_page
             )
+        else :
+            storage = Storage()
+            now = datetime.now()
+            data = now.strftime("%m/%d/%Y")
+            storage.put_object(self.nom_bucket,data+"-"+"web.json",json.dumps(self.post))
 
 
 
@@ -83,10 +94,9 @@ class Reddit (scrapy.Spider):
             'title': response.css('h1[class="_eYtD2XCVieq6emjKBH3m"]::text').get(),
             'likes': response.css('div[class="_1rZYMD_4xY3gRcSS3p8ODO _3a2ZHWaih05DgAOtvu6cIo"]::text').get(),
         }
-        nom=self.countpost
-        self.countpost+=1
-        with open("webCrawling/"+str(nom)+"-web.json",'w') as jsonf :
-            json.dump(json.dumps(posts), jsonf, indent=2)
+        self.titol.append(response.css('h1[class="_eYtD2XCVieq6emjKBH3m"]::text').get())
+        self.likes.append(response.css('div[class="_1rZYMD_4xY3gRcSS3p8ODO _3a2ZHWaih05DgAOtvu6cIo"]::text').get())
+        
         
         
 
