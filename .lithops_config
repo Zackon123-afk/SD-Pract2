@@ -16,7 +16,7 @@ lithops:
     
 serverless:
     backend: ibm_cf
-    runtime : repstail123/sdpractica2:sdcontenidor
+    runtime : repstail123/sdpractica2:sd2
     #runtime_timeout: 600
     #runtime_memory: 256
     #remote_invoker: <True/False>

@@ -20,8 +20,8 @@ tweepy
 vaderSentiment
 scrapy
 datetime
-lithops
 simplejson
+matplotlib
 #virtualenv
 Twisted
 PyJWT
