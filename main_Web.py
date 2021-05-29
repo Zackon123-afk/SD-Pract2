@@ -4,11 +4,15 @@ from urllib.parse import urlencode
 from lithops import Storage
 import json
 from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
 
+BUCKET="2sdpractica"
 
 
 class Reddit (scrapy.Spider):
-
+    
+    global BUCKET
     name = 'reddit_scraper'
 
     base_url = 'https://gateway.reddit.com/desktopapi/v1/subreddits/COVID19?'
@@ -25,7 +29,7 @@ class Reddit (scrapy.Spider):
         "sort":"hot",
         "geo_filter":"ES"
     }
-    max=40 #maximum value due to limitations of scrappy
+    max=35 #maximum value due to limitations of scrappy
     count=0
     titol = []
     likes = []
@@ -33,8 +37,6 @@ class Reddit (scrapy.Spider):
         'titol': titol,
         'likes': likes
     }
-
-    nom_bucket='2sdpractica'
 
 
     def start_requests(self):
@@ -48,6 +50,7 @@ class Reddit (scrapy.Spider):
         )
 
     def parse_page(self,response):
+        global BUCKET
         if (self.count<self.max) :
             json_data= json.loads(response.text)
 
@@ -84,7 +87,7 @@ class Reddit (scrapy.Spider):
             storage = Storage()
             now = datetime.now()
             data = now.strftime("%m/%d/%Y")
-            storage.put_object(self.nom_bucket,data+"-"+"web.json",json.dumps(self.post))
+            storage.put_object(BUCKET,data+"-"+"web.json",json.dumps(self.post))
 
 
 
@@ -97,19 +100,55 @@ class Reddit (scrapy.Spider):
         self.titol.append(response.css('h1[class="_eYtD2XCVieq6emjKBH3m"]::text').get())
         self.likes.append(response.css('div[class="_1rZYMD_4xY3gRcSS3p8ODO _3a2ZHWaih05DgAOtvu6cIo"]::text').get())
         
-        
-        
-
-
         # write JSONL output
         # with open('posts.jsonl', 'a') as f:
         #     f.write(json.dumps(posts, indent=2) + '\n')
         
-
         print(json.dumps(posts, indent=2))
+
+def grafic_web():
+    global BUCKET
+
+    def eliminateNaNs(list) :
+        i = 0
+        for x in list :
+            if str(x) == 'nan':
+                list[i] = 0
+            i+=1
+        return list
+
+    #Treatment of json to pandas
+    now = datetime.now()
+    data = now.strftime("%m/%d/%Y")
+    key= data+'-web.json'
+
+    storage = Storage()
+    json_read = storage.get_object(BUCKET,key)
+    data_analize = json.loads(json_read)
+    df = pd.DataFrame.from_dict(data_analize,orient='columns')
+    df["likes"]=df["likes"].astype(int)
+
+
+    # average likes about key words
+    likesSARS=df[df["titol"].str.contains("SARS-CoV")].mean()["likes"]
+    likesModerna=df[df["titol"].str.contains("Moderna")].mean()["likes"]
+    likesPfizer=df[df["titol"].str.contains("Pfizer")].mean()["likes"]
+    likesAstra=df[df["titol"].str.contains("AstraZeneca")].mean()["likes"]
+    likesSputnik=df[df["titol"].str.contains("Sputnik")].mean()["likes"]
+    likesJan=df[df["titol"].str.contains("Janssen")].mean()["likes"]
+
+    name = ['SARS','Moderna','Pfizer','AstraZeneca', 'Sputnik' , 'Janssen']
+    allLikes = [likesSARS,likesModerna,likesPfizer,likesAstra, likesSputnik, likesJan]
+    allLikes = eliminateNaNs(allLikes)
+
+    plt.bar(name,allLikes)
+    plt.show()
 
 
 if __name__ == '__main__':
+    
     process = CrawlerProcess()
     process.crawl(Reddit)
     process.start()
+    
+    grafic_web()

@@ -65,10 +65,9 @@ def tweepy_scan(word):
 def grafic_twitter(word):
     global BUCKET
     
-    print("wtf")
     now = datetime.now()
     data = now.strftime("%m/%d/%Y")
-    key= data +"-"+ word +'.json'
+    key= data+"-"+ word +'.json'
 
     storage = Storage()
     json_read = storage.get_object(BUCKET,key)
@@ -81,7 +80,6 @@ def grafic_twitter(word):
     sents=[sent_pos,sent_neg]
     noms=['Positiu','Negatiu']
    
-    ###############################################################################
     
     llista=list(df["sentiment"].astype(float))
     ocurrences = collections.Counter(llista)
@@ -101,17 +99,17 @@ def grafic_twitter(word):
     fig.suptitle('Estudi de la paraula:'+word)
     # plt.bar(x_value,y_value)
 
+ 
+
 
 
 if __name__ == '__main__':
  
-    #with Pool() as pool:
-        #pool.map(tweepy_scan,  [ "covid", "moderna"])
-        #pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
-        #pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
-        #pool.map(grafic_twitter, [ "covid", "moderna"])#, "pfizer", "astrazeneca", "sputnik v","janssen"])
+    with Pool() as pool:
+        pool.map(tweepy_scan,  [ "covid", "moderna"])
+        pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
+        pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
     
-
     grafic_twitter("covid")
     grafic_twitter("moderna")
     grafic_twitter("pfizer")
