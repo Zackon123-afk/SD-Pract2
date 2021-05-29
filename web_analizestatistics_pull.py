@@ -1,7 +1,6 @@
 #from urllib.request import urlopen
 from lithops import Storage
 import json
-from numpy import NaN
 import pandas as pd
 import matplotlib.pyplot as plt
 from numpy import *
