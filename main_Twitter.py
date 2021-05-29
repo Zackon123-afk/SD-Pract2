@@ -1,10 +1,11 @@
 from datetime import datetime
+import string
 from lithops import Storage
 from lithops.multiprocessing import Pool
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import mtranslate
 import json
 import tweepy
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import collections
@@ -18,14 +19,14 @@ def get_auth():
 
 def tweepy_scan(word):
     global BUCKET
-
+   
     auth = get_auth()
     api = tweepy.API(auth, wait_on_rate_limit=True)
    
     analyzer = SentimentIntensityAnalyzer()
-    qstring=word+" lang=ca OR lang:es"
+    qstring=word+"lang:ca OR lang:es"
 
-    i = 0;
+    i = 0
     textos = []
     urls = []
     sentiments = []
@@ -34,17 +35,22 @@ def tweepy_scan(word):
     source = []
     lenguaje = []
     
-    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(500): #numberOftwets
+   
+   
+    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(250): #numberOftwets
 
-        #print("-------------------------------------------------------------------------------------------------------------------------------" + str(i))
+        print("-------------------------------------------------------------------------------------------------------------------------------" + str(i))
         textos.append(status.full_text)
         urls.append("https://twitter.com/twitter/statuses/"+str(status.id)+",")
-        sentiments.append(str(analyzer.polarity_scores(textos[i])['compound']))
         dates.append(status.created_at.strftime("%m/%d/%Y %H:%M:%S"))
         local.append(str(status.user.location))
         source.append(str(status.source))
         lenguaje.append(str(status.lang))
-        i += 1;
+        i += 1
+
+    for text in textos:
+        string_twi = mtranslate.translate(str(text),"en", "auto")
+        sentiments.append(str(analyzer.polarity_scores(string_twi)['compound']))
 
     datos = {
         "Mensaje": textos,
@@ -104,11 +110,11 @@ def grafic_twitter(word):
 
 
 if __name__ == '__main__':
- 
-    with Pool() as pool:
-        pool.map(tweepy_scan,  [ "covid", "moderna"])
-        pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
-        pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
+    
+    # with Pool() as pool:
+    #     pool.map(tweepy_scan,  [ "covid", "moderna"])
+    #     pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
+    #     pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
     
     grafic_twitter("covid")
     grafic_twitter("moderna")

@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
-from lithops import FunctionExecutor
+
 BUCKET="2sdpractica"
 
 
@@ -144,14 +144,10 @@ def grafic_web():
     plt.bar(name,allLikes)
     plt.show()
 
-def function(dato):
+if __name__ == '__main__':
+    
     process = CrawlerProcess()
     process.crawl(Reddit)
     process.start() 
-
-if __name__ == '__main__':
     
-    with FunctionExecutor() as fexec:
-        fut = fexec.call_async(function,"")
-        
     grafic_web()
