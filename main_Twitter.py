@@ -13,8 +13,7 @@ import collections
 BUCKET="2sdpractica"
 
 def get_auth():
-    auth = tweepy.OAuthHandler("", "")
-    auth.set_access_token("", "")
+    
     return auth
 
 def tweepy_scan(word):
@@ -24,104 +23,116 @@ def tweepy_scan(word):
     api = tweepy.API(auth, wait_on_rate_limit=True)
    
     analyzer = SentimentIntensityAnalyzer()
-    qstring=word+"lang:ca OR lang:es"
-
-    i = 0
-    textos = []
-    urls = []
-    sentiments = []
-    dates = []
-    local = []
-    source = []
-    lenguaje = []
-    
    
-   
-    for status in tweepy.Cursor(api.search, q=qstring ,tweet_mode="extended").items(250): #numberOftwets
-
-        print("-------------------------------------------------------------------------------------------------------------------------------" + str(i))
-        textos.append(status.full_text)
-        urls.append("https://twitter.com/twitter/statuses/"+str(status.id)+",")
-        dates.append(status.created_at.strftime("%m/%d/%Y %H:%M:%S"))
-        local.append(str(status.user.location))
-        source.append(str(status.source))
-        lenguaje.append(str(status.lang))
-        i += 1
-
-    for text in textos:
-        string_twi = mtranslate.translate(str(text),"en", "auto")
-        sentiments.append(str(analyzer.polarity_scores(string_twi)['compound']))
-
     datos = {
-        "Mensaje": textos,
-        "url": urls,
-        "sentiment": sentiments,
-        "date": dates,
-        "local": local,
-        "source": source,
-        "lenguaje": lenguaje
+        "Mensaje": [],
+        "url": [],
+        "sentiment": [],
+        "date": [],
+        "local":[],
     }
     
+    for status in tweepy.Cursor(api.search, q=word, lang="es", tweet_mode="extended").items(250): #numberOftwets
+        datos["Mensaje"].append(status.full_text)
+        datos["url"].append("https://twitter.com/twitter/statuses/"+str(status.id)+",")
+        datos["date"].append(status.created_at.strftime("%m/%d/%Y %H:%M:%S"))
+        datos["local"].append(str(status.user.location))
+        print(status.full_text)
+        print("---------------------------------------------------------------------------------")
+
+    for text in datos["Mensaje"]:
+        string_twi = mtranslate.translate(str(text),"en", "auto")
+        datos["sentiment"].append(str(analyzer.polarity_scores(string_twi)['compound']))
+
     now = datetime.now()
     data = now.strftime("%m/%d/%Y")
 
     storage = Storage()  
     storage.put_object(BUCKET,data+"-"+word+".json",json.dumps(datos))
 
-def grafic_twitter(word):
+def datos_twitter(word):
     global BUCKET
-    
+
+    datos_grafi = {
+        "sent_pos" : 0,
+        "sent_neg" : 0,
+        "mitjana": 0.0,
+        "sent_hist": [],
+        "word": word,
+        "location_count": { 
+        }
+    }
+
     now = datetime.now()
     data = now.strftime("%m/%d/%Y")
     key= data+"-"+ word +'.json'
 
     storage = Storage()
     json_read = storage.get_object(BUCKET,key)
-    data_analize = json.loads(json_read)
-    df = pd.DataFrame.from_dict(data_analize,orient='columns')
-    df["sentiment"]=df["sentiment"].astype(float)
+    data = json.loads(json_read)
 
-    sent_pos=len(df[df["sentiment"] >= 0])
-    sent_neg=len(df[df["sentiment"] < 0])
-    sents=[sent_pos,sent_neg]
-    noms=['Positiu','Negatiu']
-   
+    mitjana = 0
+    for sent in data["sentiment"]:
+        sent = float(sent)
+        if sent >= 0:
+            datos_grafi["sent_pos"] += 1
+        else:
+            datos_grafi["sent_neg"] += 1
+        
+        mitjana += sent
+        datos_grafi["sent_hist"].append(round(sent, 1))
+        
+        datos_grafi["mitjana"] = (mitjana/len(data["sentiment"]))
     
-    llista=list(df["sentiment"].astype(float))
-    ocurrences = collections.Counter(llista)
-    dictionary = ocurrences.items()
-    dfa= pd.DataFrame.from_dict(dictionary,orient='columns')
-    dfa.columns = ['value','quantity']
-    dfa['quantity']= dfa['quantity'].astype(float)
-    x_value=list(dfa["value"])
-    y_value=list(dfa["quantity"])
+    for loc in data["local"]:
+        if loc in datos_grafi["location_count"]:
+            datos_grafi["location_count"][loc] += 1
+        else:
+            datos_grafi["location_count"][loc] = 1
 
-    fig, (axs1, axs2)= plt.subplots(1,2)
+    return datos_grafi
 
-    axs1.bar(noms,sents)
-    axs1.set_title('Diferencia del sentiment')
-    axs2.bar(x_value,y_value)
-    axs2.set_title('Concentració del sentiment')
-    fig.suptitle('Estudi de la paraula:'+word)
-    # plt.bar(x_value,y_value)
 
+def grafic_Sentiment(datos):
+    
+    plt.figure(figsize=(6,8))
+    eje_x = ['Positivo', 'Negativo']
+    eje_y = [datos["sent_pos"], datos["sent_neg"]]
+    
+    ## Creamos Gráfica
+    plt.bar(eje_x, eje_y, color = "b", width=0.60)
+
+    ## Legenda en el eje y
+    plt.ylabel('Nº Tweets')
+    
+    ## Título de Gráfica
+    plt.title("Sentimiento de los Tweets sobre: " + datos["word"])
+    
+    ## Mostramos Gráfica
+    plt.show()
  
 
 
 
 if __name__ == '__main__':
     
-    # with Pool() as pool:
-    #     pool.map(tweepy_scan,  [ "covid", "moderna"])
-    #     pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
-    #     pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
+
+    with Pool() as pool: # Comentar que aqui ho fem de 2 en 2 perque el lithops va molt lent i supera el temps de 10 min
+        # pool.map(tweepy_scan, [ "covid", "moderna"])
+        # pool.map(tweepy_scan,  [ "pfizer", "astrazeneca"])
+        # pool.map(tweepy_scan,  [ "sputnik v", "janssen"])
+        datos = pool.map( datos_twitter, [ "covid", "moderna", "pfizer", "astrazeneca","sputnik v", "janssen"] )
     
-    grafic_twitter("covid")
+    print(datos[0])
+    
+
+    grafic_twitter(datos[0])
+    '''
     grafic_twitter("moderna")
     grafic_twitter("pfizer")
     grafic_twitter("astrazeneca")
     grafic_twitter("sputnik v")
-    grafic_twitter("janssen")
+    grafic_twitter("janssen")'''
     
 
     
