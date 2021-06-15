@@ -174,22 +174,33 @@ if __name__ == '__main__':
     
 
     with Pool() as pool:
-        # pool.map( tweepy_scan, [ "covid", "moderna", "pfizer", "astrazeneca", "sputnik v", "janssen"])
+        pool.map( tweepy_scan, [ "covid", "moderna", "pfizer", "astrazeneca", "sputnik v", "janssen"])
         datos = pool.map( datos_twitter, [ "covid", "moderna", "pfizer", "astrazeneca","sputnik v", "janssen"])
     
-    print(datos[0])
     
     grafic_localitzacio(datos[0])
+    grafic_localitzacio(datos[1])
+    grafic_localitzacio(datos[2])
+    grafic_localitzacio(datos[3])
+    grafic_localitzacio(datos[4])
+    grafic_localitzacio(datos[5])
+   
     grafic_sentiment(datos[0])
+    grafic_sentiment(datos[1])
+    grafic_sentiment(datos[2])
+    grafic_sentiment(datos[3])
+    grafic_sentiment(datos[4])
+    grafic_sentiment(datos[5])
+
     grafic_historiaSentiment(datos[0])
+    grafic_historiaSentiment(datos[1])
+    grafic_historiaSentiment(datos[2])
+    grafic_historiaSentiment(datos[3])
+    grafic_historiaSentiment(datos[4])
+    grafic_historiaSentiment(datos[5])
 
     grafic_globalSentiment(datos)
-    '''
-    grafic_twitter("moderna")
-    grafic_twitter("pfizer")
-    grafic_twitter("astrazeneca")
-    grafic_twitter("sputnik v")
-    grafic_twitter("janssen")'''
+    
     
 
     
