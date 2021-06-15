@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+from lithops.multiprocessing import Pool
 
 BUCKET="2sdpractica"
 
@@ -87,7 +88,7 @@ class Reddit (scrapy.Spider):
             storage = Storage()
             now = datetime.now()
             data = now.strftime("%m/%d/%Y")
-            storage.put_object(BUCKET,data+"-"+"web.json",json.dumps(self.post))
+            storage.put_object(BUCKET,data+"-web.json",json.dumps(self.post))
 
 
 
@@ -144,10 +145,13 @@ def grafic_web():
     plt.bar(name,allLikes)
     plt.show()
 
-if __name__ == '__main__':
-    
+def crawler_search(par):
     process = CrawlerProcess()
     process.crawl(Reddit)
     process.start() 
+if __name__ == '__main__':
     
-    grafic_web()
+    with Pool() as pool:
+        r = pool.apply(crawler_search,[("","")])
+    
+    #grafic_web()
