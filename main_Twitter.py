@@ -144,31 +144,46 @@ def grafic_globalSentiment(datos):
     plt.bar(ind, dat4, width, bottom=dat3, color='grey')
     plt.bar(ind, dat5, width, bottom=dat4, color='magenta')
 
-    plt.ylabel('Scores')
+    plt.ylabel('Nº Tweets')
+    plt.xlabel("Sentiment")
     plt.title('Resum general del sentiment')
     plt.legend(labels=[ "covid", "moderna", "pfizer", "astrazeneca","sputnik v", "janssen"])
     plt.xticks(ind, ('Positiu', 'Negatiu'))
     plt.show()
 
 def grafic_localitzacio(datos):
+    keys= []
+    values = []
+    datos["location_count"].pop('')
+    for key in datos["location_count"]:
+        val = datos["location_count"][key]
+        if val > 1:
+            keys.append(key)
+            values.append(val)
 
-     plt.bar(datos["location_count"], color = ["blue"], width=0.60)
-     plt.show()
+    plt.figure(figsize=(10,12))
+    plt.title("Localització dels tweets ( > 1):" + datos["word"])
+    plt.xlabel("Localitzacions")
+    plt.ylabel("Nº Tweets") 
+    plt.bar(keys,values, color = ["green"])
+    plt.xticks(rotation=90)
+    plt.show()
 
 
 if __name__ == '__main__':
     
 
     with Pool() as pool:
-        pool.map( tweepy_scan, [ "covid", "moderna", "pfizer", "astrazeneca", "sputnik v", "janssen"])
+        # pool.map( tweepy_scan, [ "covid", "moderna", "pfizer", "astrazeneca", "sputnik v", "janssen"])
         datos = pool.map( datos_twitter, [ "covid", "moderna", "pfizer", "astrazeneca","sputnik v", "janssen"])
     
     print(datos[0])
     
     grafic_localitzacio(datos[0])
-    grafic_globalSentiment(datos)
     grafic_sentiment(datos[0])
     grafic_historiaSentiment(datos[0])
+
+    grafic_globalSentiment(datos)
     '''
     grafic_twitter("moderna")
     grafic_twitter("pfizer")
