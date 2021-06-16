@@ -8,6 +8,8 @@ import tweepy
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+
 
 BUCKET="2sdpractica"
 
@@ -174,10 +176,18 @@ if __name__ == '__main__':
     
 
     with Pool() as pool:
+        inicio = time.time()
         pool.map( tweepy_scan, [ "covid", "moderna", "pfizer", "astrazeneca", "sputnik v", "janssen"])
+        fin = time.time()
+        inicio2 = time.time()
         datos = pool.map( datos_twitter, [ "covid", "moderna", "pfizer", "astrazeneca","sputnik v", "janssen"])
+        fin2 = time.time()
     
-    
+    print("Temps en segons:")
+    print("Tiempo de tweepy_scan: " + str(fin-inicio))
+    print("Tiempo de datos twitter:" + str(fin2-inicio2))
+    print("Tiempo Total: " + str((fin-inicio) + (fin2-inicio2)))
+
     grafic_localitzacio(datos[0])
     grafic_localitzacio(datos[1])
     grafic_localitzacio(datos[2])
